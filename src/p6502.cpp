@@ -19,6 +19,15 @@ P6502::P6502(Bus* bus)
     
     
 }
+uint8_t P6502::read(uint16_t addr)
+{
+    return bus->read(addr);
+}
+
+void P6502::write(uint16_t addr, uint8_t data)
+{
+    bus->write(data, addr);
+}
 
 void P6502::SetFlag(uint8_t flag, bool b)
 {
@@ -44,7 +53,7 @@ void P6502::cycle()
 {
     if (cycles == 0){
 
-        opcode = bus->read(pc);
+        opcode = read(pc);
 
         SetFlag(U, true);
         
@@ -54,8 +63,9 @@ void P6502::cycle()
 
         cycles = instruction.cycles;
 
-        uint8_t additional_cycle1 = (this->*instruction.operation)();
-        uint8_t additional_cycle2 = (this->*instruction.address_mode)();
+        uint8_t additional_cycle1 = (this->*instruction.address_mode)();
+        uint8_t additional_cycle2 = (this->*instruction.operation)();
+        
 
         cycles += (additional_cycle1 & additional_cycle2);
 
@@ -77,69 +87,169 @@ void P6502::reset()
 
 }  
 
+///////////////////////////////////////////////////////
+// -----------------Addressing Modes-----------------//
+///////////////////////////////////////////////////////
 
-// Addressing Modes
-
+// Implied Addressing
 uint8_t P6502::IMP()
 {
-    operand = acc; // Set the operand to the accumilator 
     return 0;
 }
 
+// Immidiate Addressing
 uint8_t P6502::IMM()
 {
-    uint8_t next_byte = operand++;
-    operand = next_byte; // Set the operand to the next bit after the instruction
-    return 0;
-}
-
-uint8_t P6502::ZP0()
-{
+    // Get the operand from the PC address
+    mem_addr = pc;
+    pc++;
     
     return 0;
 }
 
+// Zero-Page Addressing
+uint8_t P6502::ZP0()
+{
+    uint16_t offset = read(pc); // Get the offset for the zero page
+
+    mem_addr = offset & 0x00FF; // Mask the offset to get the operand 
+    
+    pc++;
+    
+    return 0;
+}
+
+// X-Indexed Zero-Page Addressing
 uint8_t P6502::ZPX()
 {
     
-    return 0;
-}
-uint8_t P6502::ZPY()
-{
+    uint16_t offset = read(pc); // Get the offset for the zero page
+
+    // Mask the offset, and increment it by x, to get the operand 
+    mem_addr = (offset + x) & 0x00FF; 
+    pc++;
     
     return 0;
 }
+
+// Y-Indexed Zero-Page Addressing
+uint8_t P6502::ZPY()
+{
+    uint16_t offset = read(pc); 
+
+    // Mask the offset, and increment it by y, to get the operand 
+    mem_addr = (offset + y) & 0x00FF; 
+    pc++;
+    
+    return 0;
+}
+
+// Relative Addressing
 uint8_t P6502::REL()
 {
     
     return 0;
 }
+
+// Absolute Addressing
 uint8_t P6502::ABS()
 {
-    
+    // We will have to fetch the address in two iterations
+    // since read() returns a uint8_t instead of a 2 Byte address.
+
+    // Get the first 8 bits
+    uint16_t low = read(pc);
+    pc++;
+
+    // Get the second 8 bits
+    uint16_t high = read(pc);
+    pc++;
+
+    // Shift the second 8 bits up so that we can merge the two addresses into one
+    mem_addr = (high << 8) | low;
+
     return 0;
 }
+
+// X-Indexed Absolute Addressing
 uint8_t P6502::ABX()
 {
+    uint8_t lo = read(pc); 
+    pc++;
     
+    uint8_t hi = read(pc); 
+    pc++;
+
+    uint16_t base_addr = lo + (hi << 8); 
+
+    // Index the memory address by x
+    mem_addr = base_addr + x;
+
+    // Check for page crossing
+    if ((mem_addr & 0xFF00) != (base_addr & 0xFF00)) {
+        return 1; // Indicate a page boundary crossing so a cycle will be added
+    }
+
     return 0;
 }
+
+// Y-Indexed Absolute Addressing
 uint8_t P6502::ABY()
 {
+    uint8_t lo = read(pc); 
+    pc++;
+    
+    uint8_t hi = read(pc); 
+    pc++;
+
+    uint16_t base_addr = lo + (hi << 8); 
+    
+    // Index the memory address by y
+    mem_addr = base_addr + y;
+
+    
+    if ((mem_addr & 0xFF00) != (base_addr & 0xFF00)) {
+        return 1; 
+    }
+
     return 0;
 }
 
-uint8_t P6502::IND()
+// Indirect Addressing
+uint8_t P6502::IND() 
 {
+    // Get the low byte of the pointer address
+    uint8_t ptr_low = read(pc); 
+    pc++;
+    
+    // Get the high byte of the pointer address
+    uint8_t ptr_high = read(pc); 
+    pc++;
+
+    // Combine the low and high bytes to form the 16-bit pointer address
+    uint16_t ptr_addr = (ptr_high << 8) | ptr_low; // Shift the high byte left by 8 bits and add to the low byte
+
+    // Get the low byte of the effective address from the pointer address
+    uint8_t eff_lo = read(ptr_addr); 
+    ptr_addr++;
+    
+    // Get the high byte of the effective address from the next memory location
+    uint8_t eff_hi = read(ptr_addr); 
+
+    // Combine the low and high bytes to form the 16-bit effective address
+    mem_addr = (eff_hi << 8) | eff_lo; 
+
     return 0;
 }
 
+// X-Indexed Indirect Addressing
 uint8_t P6502::IZX()
 {
     
     return 0;
 }
 
+// Y-Indexed Indirect Addressing
 uint8_t P6502::IZY()
 {
     
@@ -152,26 +262,34 @@ uint8_t P6502::IZY()
 
 
 
-
-// Instructions
+///////////////////////////////////////////////////
+// -----------------Instructions-----------------//
+///////////////////////////////////////////////////
 
 uint8_t P6502::INC()
 {
-    bus->write(mem_addr, bus->read(mem_addr) + 1); // Go into the absolute address and increment it by 1.
+    write(mem_addr, read(mem_addr) + 1); // Go into the absolute address and increment it by 1.
     return 0;
 }
 
 
-
+// Increments The x Register
+// Flags: N, Z
 uint8_t P6502::INX()
 {
     x++;
+    SetFlag(Z, x == 0x00);
+	SetFlag(N, x & 0x80);
     return 0;
 }
 
+// Increments The y Register
+// Flags: N, Z
 uint8_t P6502::INY()
 {
     y++;
+    SetFlag(Z, y == 0x00);
+	SetFlag(N, y & 0x80);
     return 0;
 }
 
@@ -285,8 +403,14 @@ uint8_t P6502::JSR()
 {
     return 0;
 }
+
+// Loads Accumulator with Memory
+// Flags: N, Z
 uint8_t P6502::LDA()
 {
+    acc = read(mem_addr);
+    SetFlag(Z, acc == 0x00);
+	SetFlag(N, acc & 0x80);
     return 0;
 }
 uint8_t P6502::LDX()

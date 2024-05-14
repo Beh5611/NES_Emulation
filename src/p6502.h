@@ -15,14 +15,14 @@ class P6502
         P6502(Bus* bus); // Constructor
 
         // Flags
-        static const uint8_t C = (1 << 0);
-        static const uint8_t Z = (1 << 1);
-        static const uint8_t I = (1 << 2);
-        static const uint8_t D = (1 << 3);
-        static const uint8_t B = (1 << 4);
-        static const uint8_t U = (1 << 5);
-        static const uint8_t V = (1 << 6);
-        static const uint8_t N = (1 << 7);
+        static const uint8_t C = (1 << 0); // Carry Bit
+        static const uint8_t Z = (1 << 1); // Zero
+        static const uint8_t I = (1 << 2); // Disable Interrupts
+        static const uint8_t D = (1 << 3); // Decimal Mode (unused in this implementation)
+        static const uint8_t B = (1 << 4); // Break
+        static const uint8_t U = (1 << 5); // Unused
+        static const uint8_t V = (1 << 6); // Overflow
+        static const uint8_t N = (1 << 7); // Negative
 
         
     
@@ -38,6 +38,10 @@ class P6502
 
         
         uint16_t mem_addr, brch_addr; // Used Memory address and address following a branch instruction
+
+
+        uint8_t read(uint16_t addr);
+        void write(uint16_t addr, uint8_t data);
 
         void SetFlag(uint8_t flag, bool b); // Sets flag or Makes sure the flag is not set depending on b
         uint8_t GetFlag(uint8_t flag); // Returns the bit (1 or 0) at a certain position depending on the flag value
