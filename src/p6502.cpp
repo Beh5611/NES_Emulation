@@ -245,7 +245,15 @@ uint8_t P6502::IND()
 // X-Indexed Indirect Addressing
 uint8_t P6502::IZX()
 {
-    
+    uint16_t t = read(pc);
+	pc++;
+
+    uint16_t lo = read((uint16_t)(t + (uint16_t)x) & 0x00FF);
+	uint16_t hi = read((uint16_t)(t + (uint16_t)x + 1) & 0x00FF);
+
+
+    mem_addr = (hi << 8) | lo;
+
     return 0;
 }
 
@@ -253,7 +261,20 @@ uint8_t P6502::IZX()
 uint8_t P6502::IZY()
 {
     
-    return 0;
+    uint16_t t = read(pc);
+	pc++;
+
+	uint16_t lo = read(t & 0x00FF);
+	uint16_t hi = read((t + 1) & 0x00FF);
+
+	mem_addr = (hi << 8) | lo;
+	mem_addr += y;
+	
+	if ((mem_addr & 0xFF00) != (hi << 8))
+		return 1;
+	else
+		return 0;
+        
 }
 
 
