@@ -8,7 +8,7 @@ P6502::P6502(Bus* bus)
     x = 0x00; 
     y = 0x00; 
     flag_status = U;
-    stp = 0x0000; 
+    stp = 0xFD; 
     pc = 0x0000; 
     mem_addr = 0x0000;
     brch_addr = 0x0000;
@@ -27,6 +27,16 @@ uint8_t P6502::read(uint16_t addr)
 void P6502::write(uint16_t addr, uint8_t data)
 {
     bus->write(data, addr);
+}
+
+void P6502::push(uint8_t data) 
+{
+    // Store the value at the address in the stack page.
+    // The address is calculated by adding the base address of the stack page (0x0100)
+    // to the current value of the stack pointer.
+    write((0x0100 + stp), data);
+
+    stp--;
 }
 
 void P6502::SetFlag(uint8_t flag, bool b)
@@ -76,19 +86,58 @@ void P6502::cycle()
 }  
 void P6502::interrupt()
 {
+    if(GetFlag(I) == 0){
+        push((pc >> 8) & 0x00FF);  // Push high byte of PC onto stack
+        push(pc & 0x00FF);         // Push low byte of PC onto stack
+        
+        // Set and push status register onto stack
+        SetFlag(B, 0);
+		SetFlag(U, 1);
+		SetFlag(I, 1);
+        push(flag_status);   
+        
+        pc = (read(0xFFFF) << 8) | read(0xFFFE);
+        cycles = 7;
+
+    }
 
 }
 void P6502::nm_interrupt()
 {
+    push((pc >> 8) & 0x00FF);  // Push high byte of PC onto stack
+    push(pc & 0x00FF);         // Push low byte of PC onto stack
+    
+    // Set and push status register onto stack
+    SetFlag(B, 0);
+    SetFlag(U, 1);
+    SetFlag(I, 1);
+    push(flag_status);   
+        
+    pc = (read(0xFFFB) << 8) | read(0xFFFA);
+    cycles = 8;
 
 } 
 void P6502::reset()
 {
+    // Reset Registers and variables
+    acc = 0x00;
+    x = 0x00;
+    y = 0x00;
+    mem_addr = 0x0000;
+    brch_addr = 0x0000;
+    stp = 0xFD;
+    operand = 0x00;
 
+    SetFlag(U, true); // Reset flag state
+
+    // Read the reset vector to set the PC
+    pc = (read(0xFFFD) << 8) | read(0xFFFC);
+
+    cycles = 8; //Representative of how long reset takes.
 }  
 
 ///////////////////////////////////////////////////////
-// -----------------Addressing Modes-----------------//
+//------------------Addressing Modes-----------------//
 ///////////////////////////////////////////////////////
 
 // Implied Addressing

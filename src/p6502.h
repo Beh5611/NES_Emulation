@@ -42,6 +42,7 @@ class P6502
 
         uint8_t read(uint16_t addr);
         void write(uint16_t addr, uint8_t data);
+        void push(uint8_t data);
 
         void SetFlag(uint8_t flag, bool b); // Sets flag or Makes sure the flag is not set depending on b
         uint8_t GetFlag(uint8_t flag); // Returns the bit (1 or 0) at a certain position depending on the flag value
