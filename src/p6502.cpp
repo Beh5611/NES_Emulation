@@ -47,7 +47,7 @@ void P6502::push(uint8_t data)
 }
 
 // For implied instructions, sets the operand
-void P6502::fetch_opcode()
+void P6502::fetch_operand()
 {
 	if (!(instructions[opcode].address_mode == &P6502::IMP))
 		operand = read(mem_addr);
@@ -353,9 +353,16 @@ uint8_t P6502::IZY()
 // -----------------Instructions-----------------//
 ///////////////////////////////////////////////////
 
+// Increment the Value in the Memory Adress (Operand)
+// Flags: N, Z
 uint8_t P6502::INC()
 {
-    write(mem_addr, read(mem_addr) + 1); // Go into the absolute address and increment it by 1.
+    fetch_operand();
+    operand += 1;
+    write(mem_addr, operand);
+    SetFlag(N, operand & 0x80);
+    SetFlag(Z, operand == 0x00);
+
     return 0;
 }
 
@@ -384,8 +391,15 @@ uint8_t P6502::ADC()
 {
     return 0;
 }
+
+// 'AND' Memory with Accumulator and Store it Back Into the Accumulator
+// Flags: N, Z
 uint8_t P6502::AND()
 {
+    fetch_operand();
+    acc = acc & operand;
+    SetFlag(N, acc & 0x80);
+    SetFlag(Z, acc == 0x00);
     return 0;
 }
 uint8_t P6502::ASL()
@@ -436,31 +450,58 @@ uint8_t P6502::CLC()
 {
     return 0;
 }
+// Clear the Decimal Flag
 uint8_t P6502::CLD()
 {
+    SetFlag(D, false);
     return 0;
 }
+// Clear the Interrupt Flag
 uint8_t P6502::CLI()
 {
+    SetFlag(I, false);
     return 0;
 }
 uint8_t P6502::CLV()
 {
     return 0;
 }
+
+// Compares the accumulator and the operand
+// Flags: C, Z, N
 uint8_t P6502::CMP()
 {
+    fetch_operand();
+    uint8_t result = acc - operand;
+    SetFlag(C, acc >= operand);
+    SetFlag(Z, result == 0x00);
+    SetFlag(N, result & 0x80);
     return 0;
 }
 
-
+// Compares the x and the operand
+// Flags: C, Z, N
 uint8_t P6502::CPX()
 {
+    fetch_operand();
+    uint8_t result = x - operand;
+    SetFlag(C, acc >= operand);
+    SetFlag(Z, result == 0x00);
+    SetFlag(N, result & 0x80);
+    
     return 0;
 }
 
+// Compares the y and the operand
+// Flags: C, Z, N
 uint8_t P6502::CPY()
 {
+    fetch_operand();
+    uint8_t result = y - operand;
+    SetFlag(C, acc >= operand);
+    SetFlag(Z, result == 0x00);
+    SetFlag(N, result & 0x80);
+    
     return 0;
 }
 
@@ -491,22 +532,38 @@ uint8_t P6502::JSR()
     return 0;
 }
 
-// Loads Accumulator with Memory
+// Loads Accumulator With Value From Memory
 // Flags: N, Z
 uint8_t P6502::LDA()
 {
-    acc = read(mem_addr);
+    fetch_operand();
+    acc = operand;
     SetFlag(Z, acc == 0x00);
 	SetFlag(N, acc & 0x80);
     return 0;
 }
+
+// Loads X Register With Value From Memory
+// Flags: N, Z
 uint8_t P6502::LDX()
 {
+    fetch_operand();
+    x = operand;
+    SetFlag(Z, x == 0x00);
+	SetFlag(N, x & 0x80);
+    
     return 0;
 }
 
+// Loads y Register With Value From Memory
+// Flags: N, Z
 uint8_t P6502::LDY()
 {
+    fetch_operand();
+    y = operand;
+    SetFlag(Z, y == 0x00);
+	SetFlag(N, y & 0x80);
+    
     return 0;
 }
 
@@ -525,8 +582,12 @@ uint8_t P6502::ORA()
 {
     return 0;
 }
+
+// Push the Accumulator to Stack
 uint8_t P6502::PHA()
 {
+    push(acc);
+
     return 0;
 }
 uint8_t P6502::PHP()
@@ -563,28 +624,40 @@ uint8_t P6502::SBC()
 {
     return 0;
 }
+// Set the Carry Flag
 uint8_t P6502::SEC()
 {
+    SetFlag(C, true);
     return 0;
 }
+// Set the Decimal Flag
 uint8_t P6502::SED()
 {
+    SetFlag(D, true);
     return 0;
 }
+// Enable Interrupts by Setting the Interrupt Flag
 uint8_t P6502::SEI()
 {
+    SetFlag(I, true);
     return 0;
 }
+// Store Accumulator at Memory Address
 uint8_t P6502::STA()
 {
+    write(mem_addr, acc);
     return 0;
 }
+// Store X Register at Address
 uint8_t P6502::STX()
 {
+    write(mem_addr, x);
     return 0;
 }
+// Store Y Register at Address
 uint8_t P6502::STY()
 {
+    write(mem_addr, y);
     return 0;
 }
 uint8_t P6502::TAX()
