@@ -626,7 +626,7 @@ uint8_t P6502::TAX()
     x = acc;
     SetFlag(Z, x == 0x00);
     SetFlag(N, x & 0x80);
-    return 0;
+    return 0; 
 }
 uint8_t P6502::TAY()
 {
