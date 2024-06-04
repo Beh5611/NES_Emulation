@@ -1,5 +1,8 @@
 #include "p6502.h"
 #include "Bus.h"
+
+
+// Constructor
 P6502::P6502(Bus* bus)
 {
     this->bus = bus;
@@ -19,19 +22,23 @@ P6502::P6502(Bus* bus)
     
     
 }
+
+// Read from the memory using the bus.
 uint8_t P6502::read(uint16_t addr)
 {
     return bus->read(addr);
 }
 
+// Write into the Bus, which writes into the Memory
 void P6502::write(uint16_t addr, uint8_t data)
 {
     bus->write(data, addr);
 }
 
+// Store the some value in the stack page.
 void P6502::push(uint8_t data) 
 {
-    // Store the value at the address in the stack page.
+    
     // The address is calculated by adding the base address of the stack page (0x0100)
     // to the current value of the stack pointer.
     write((0x0100 + stp), data);
@@ -39,6 +46,15 @@ void P6502::push(uint8_t data)
     stp--;
 }
 
+// For implied instructions, sets the operand
+void P6502::fetch_opcode()
+{
+	if (!(instructions[opcode].address_mode == &P6502::IMP))
+		operand = read(mem_addr);
+	
+}
+
+// Sets the flag if true, removes the flag if false.
 void P6502::SetFlag(uint8_t flag, bool b)
 {
     if (b)
@@ -52,6 +68,7 @@ void P6502::SetFlag(uint8_t flag, bool b)
     }
 };
 
+// Returns whether a particular flag in the bit field is used or not.
 uint8_t P6502::GetFlag(uint8_t flag)
 {
     // Return 1 if flag and flag register are the same, else return 0
