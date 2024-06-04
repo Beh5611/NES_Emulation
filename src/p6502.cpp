@@ -47,7 +47,7 @@ void P6502::push(uint8_t data)
 }
 
 // For implied instructions, sets the operand
-void P6502::fetch_opcode()
+void P6502::fetch_operand()
 {
 	if (!(instructions[opcode].address_mode == &P6502::IMP))
 		operand = read(mem_addr);
@@ -108,9 +108,9 @@ void P6502::interrupt()
         push(pc & 0x00FF);         // Push low byte of PC onto stack
         
         // Set and push status register onto stack
-        SetFlag(B, 0);
-		SetFlag(U, 1);
-		SetFlag(I, 1);
+        SetFlag(B, false);
+		SetFlag(U, true);
+		SetFlag(I, true);
         push(flag_status);   
         
         pc = (read(0xFFFF) << 8) | read(0xFFFE);
@@ -125,9 +125,9 @@ void P6502::nm_interrupt()
     push(pc & 0x00FF);         // Push low byte of PC onto stack
     
     // Set and push status register onto stack
-    SetFlag(B, 0);
-    SetFlag(U, 1);
-    SetFlag(I, 1);
+    SetFlag(B, false);
+    SetFlag(U, true);
+    SetFlag(I, true);
     push(flag_status);   
         
     pc = (read(0xFFFB) << 8) | read(0xFFFA);
@@ -382,14 +382,32 @@ uint8_t P6502::INY()
 
 uint8_t P6502::ADC()
 {
-    return 0;
+    return 0;   
 }
 uint8_t P6502::AND()
 {
     return 0;
 }
+
 uint8_t P6502::ASL()
-{
+{   
+    if(instructions[opcode].address_mode == &P6502::IMP){
+        uint16_t temp = (uint16_t)acc << 1;
+        acc = (uint8_t)(temp & 0x00FF);
+        SetFlag(Z, acc == 0x00);
+        SetFlag(N, acc & 0x80);
+        SetFlag(C, (temp & 0xFF00) > 0);
+    }
+    else{
+        fetch_operand();
+        uint16_t temp = (uint16_t)operand << 1;
+        operand = (uint8_t)(temp & 0x00FF);
+        write(mem_addr, operand);
+        SetFlag(Z, operand == 0x00);
+        SetFlag(N, operand & 0x80);
+        SetFlag(C, (temp & 0xFF00) > 0);
+    }
+   
     return 0;
 }
 uint8_t P6502::BCC()
@@ -434,6 +452,7 @@ uint8_t P6502::BVS()
 }
 uint8_t P6502::CLC()
 {
+    SetFlag(C, false);
     return 0;
 }
 uint8_t P6502::CLD()
@@ -444,8 +463,10 @@ uint8_t P6502::CLI()
 {
     return 0;
 }
+
 uint8_t P6502::CLV()
 {
+    SetFlag(V, false);
     return 0;
 }
 uint8_t P6502::CMP()
@@ -465,15 +486,26 @@ uint8_t P6502::CPY()
 }
 
 uint8_t P6502::DEC()
-{
+{   
+    fetch_operand();
+    operand--;
+    write(mem_addr, operand);
+    SetFlag(N, operand == 0x00);
+    SetFlag(Z, operand & 0x80);
     return 0;
 }
 uint8_t P6502::DEX()
 {
+    x--;
+    SetFlag(N, x== 0x00);
+    SetFlag(Z, x & 0x80);
     return 0;
 }
 uint8_t P6502::DEY()
 {
+    y--;
+    SetFlag(N, y == 0x00);
+    SetFlag(Z, y & 0x80);
     return 0;
 }
 uint8_t P6502::EOR()
@@ -484,6 +516,7 @@ uint8_t P6502::EOR()
 
 uint8_t P6502::JMP()
 {
+    pc= mem_addr;
     return 0;
 }
 uint8_t P6502::JSR()
@@ -531,6 +564,7 @@ uint8_t P6502::PHA()
 }
 uint8_t P6502::PHP()
 {
+    push(flag_status);
     return 0;
 }
 uint8_t P6502::PLA()
@@ -589,6 +623,9 @@ uint8_t P6502::STY()
 }
 uint8_t P6502::TAX()
 {
+    x = acc;
+    SetFlag(Z, x == 0x00);
+    SetFlag(N, x & 0x80);
     return 0;
 }
 uint8_t P6502::TAY()
