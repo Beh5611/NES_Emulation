@@ -213,8 +213,18 @@ uint8_t P6502::ZPY()
 // Relative Addressing
 uint8_t P6502::REL()
 {
+    // Fetch the offset
+    uint16_t offset = read(pc);
+	
+	if (offset & 0x80)
+		offset |= 0xFF00;
     
-    return 0;
+    pc++;
+
+    // Calculate target address
+    brch_addr = pc + offset; 
+
+	return 0;
 }
 
 // Absolute Addressing
