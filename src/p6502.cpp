@@ -46,6 +46,13 @@ void P6502::push(uint8_t data)
     stp--;
 }
 
+// Pop a value from the stack page.
+uint8_t P6502::pop()
+{
+    stp++;  // Increment SP
+    return read(0x0100 + stp);
+}
+
 // For implied instructions, sets the operand
 void P6502::fetch_operand()
 {
@@ -657,6 +664,10 @@ uint8_t P6502::PHP()
 }
 uint8_t P6502::PLA()
 {
+    stp ++;
+    acc = read(0x0100 + stp);
+	SetFlag(Z, acc == 0x00);
+	SetFlag(N, acc & 0x80);
     return 0;
 }
 uint8_t P6502::PLP()

@@ -43,6 +43,7 @@ class P6502
         uint8_t read(uint16_t addr);
         void write(uint16_t addr, uint8_t data);
         void push(uint8_t data);
+        uint8_t pop();
 
         void fetch_operand();
 
