@@ -413,6 +413,8 @@ uint8_t P6502::AND()
     return 0;
 }
 
+// Shift the accumulator OR operand to the left
+// Flags : N, Z, C
 uint8_t P6502::ASL()
 {   
     if(instructions[opcode].address_mode == &P6502::IMP){
@@ -474,17 +476,21 @@ uint8_t P6502::BVS()
 {
     return 0;
 }
+
+// Clear the Carry Flag
 uint8_t P6502::CLC()
 {
     SetFlag(C, false);
     return 0;
 }
+
 // Clear the Decimal Flag
 uint8_t P6502::CLD()
 {
     SetFlag(D, false);
     return 0;
 }
+
 // Clear the Interrupt Flag
 uint8_t P6502::CLI()
 {
@@ -492,6 +498,7 @@ uint8_t P6502::CLI()
     return 0;
 }
 
+// Clear the OverFlow Flag
 uint8_t P6502::CLV()
 {
     SetFlag(V, false);
@@ -536,6 +543,8 @@ uint8_t P6502::CPY()
     return 0;
 }
 
+// Decrement the Operand (value at the specified memory location)
+// Flags: N, Z
 uint8_t P6502::DEC()
 {   
     fetch_operand();
@@ -545,6 +554,9 @@ uint8_t P6502::DEC()
     SetFlag(Z, operand & 0x80);
     return 0;
 }
+
+// Decrement the X register
+// Flags: N, Z
 uint8_t P6502::DEX()
 {
     x--;
@@ -552,6 +564,9 @@ uint8_t P6502::DEX()
     SetFlag(Z, x & 0x80);
     return 0;
 }
+
+// Decrement the Y register
+// Flags: N, Z
 uint8_t P6502::DEY()
 {
     y--;
@@ -564,7 +579,7 @@ uint8_t P6502::EOR()
     return 0;
 }
 
-
+// Jump to target location
 uint8_t P6502::JMP()
 {
     pc= mem_addr;
@@ -633,6 +648,8 @@ uint8_t P6502::PHA()
 
     return 0;
 }
+
+// Push the flag status to the Stack
 uint8_t P6502::PHP()
 {
     push(flag_status);
@@ -668,42 +685,51 @@ uint8_t P6502::SBC()
 {
     return 0;
 }
+
 // Set the Carry Flag
 uint8_t P6502::SEC()
 {
     SetFlag(C, true);
     return 0;
 }
+
 // Set the Decimal Flag
 uint8_t P6502::SED()
 {
     SetFlag(D, true);
     return 0;
 }
+
 // Enable Interrupts by Setting the Interrupt Flag
 uint8_t P6502::SEI()
 {
     SetFlag(I, true);
     return 0;
 }
+
 // Store Accumulator at Memory Address
 uint8_t P6502::STA()
 {
     write(mem_addr, acc);
     return 0;
 }
+
 // Store X Register at Address
 uint8_t P6502::STX()
 {
     write(mem_addr, x);
     return 0;
 }
+
 // Store Y Register at Address
 uint8_t P6502::STY()
 {
     write(mem_addr, y);
     return 0;
 }
+
+// Transfer the Accumulator register to the X register
+// Flags: N, Z
 uint8_t P6502::TAX()
 {
     x = acc;
@@ -711,29 +737,52 @@ uint8_t P6502::TAX()
     SetFlag(N, x & 0x80);
     return 0; 
 }
+
+// Transfer the Accumulator register to the X Register
+// Flags: N, Z
 uint8_t P6502::TAY()
 {
+    y = acc;
+	SetFlag(Z, y == 0x00);
+	SetFlag(N, y & 0x80);
     return 0;
 }
 
-
+// Transfer the Stack Pointer to the X Register
+// Flags: N, Z
 uint8_t P6502::TSX()
 {
+    x = stp;
+	SetFlag(Z, x == 0x00);
+	SetFlag(N, x & 0x80);
     return 0;
 }
+
+// Transfer the X register to the Accumulator
+// Flags: N, Z
 uint8_t P6502::TXA()
 {
-    return 0;
+	acc = x;
+	SetFlag(Z, acc == 0x00);
+	SetFlag(N, acc & 0x80);
+	return 0;
 }
 
+// Transfer the X register to the Stack Pointer
 uint8_t P6502::TXS()
 {
+    stp = x;
     return 0;
 }
 
+// Transfer the Y Register to Accumulator
+// Flags: N, Z
 uint8_t P6502::TYA()
 {
-    return 0;
+	acc = y;
+	SetFlag(Z, acc == 0x00);
+	SetFlag(N, acc & 0x80);
+	return 0;
 }
 
 uint8_t P6502::XXX()
