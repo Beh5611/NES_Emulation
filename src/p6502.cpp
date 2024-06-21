@@ -61,6 +61,18 @@ void P6502::fetch_operand()
 	
 }
 
+// Branch to 16 bit address defined from 
+void P6502::branch(){
+    cycles++;
+
+    mem_addr = pc + brch_addr;
+    // Check if the addition crossed a page boundary
+    if((mem_addr & 0xFF00) != (pc & 0xFF00)){
+        cycles ++;
+    }
+    pc = mem_addr;
+}
+
 // Sets the flag if true, removes the flag if false.
 void P6502::SetFlag(uint8_t flag, bool b)
 {
@@ -221,15 +233,12 @@ uint8_t P6502::ZPY()
 uint8_t P6502::REL()
 {
     // Fetch the offset
-    uint16_t offset = read(pc);
+    mem_addr = read(pc);
 	
-	if (offset & 0x80)
-		offset |= 0xFF00;
+	if (mem_addr & 0x80)
+		mem_addr |= 0xFF00;
     
     pc++;
-
-    // Calculate target address
-    brch_addr = pc + offset; 
 
 	return 0;
 }
@@ -443,44 +452,107 @@ uint8_t P6502::ASL()
    
     return 0;
 }
+
+// Branch if Carry is Clear
 uint8_t P6502::BCC()
 {
+    if (GetFlag(C) == 0){
+        branch();
+    }
     return 0;
 }
+
+// Branch if Carry is Set
 uint8_t P6502::BCS()
 {
+    if (GetFlag(C) == 1){
+        branch();
+    }
     return 0;
 }
+
+// Branch if Equal
 uint8_t P6502::BEQ()
 {
+    
+    if (GetFlag(Z) == 1){
+        branch();
+    }
     return 0;
 }
+
+
 uint8_t P6502::BIT()
 {
-    return 0;
+    fetch_operand();
+	uint16_t temp = acc & operand;
+	SetFlag(Z, (temp & 0x00FF) == 0x00);
+	SetFlag(N, operand & (1 << 7));
+	SetFlag(V, operand & (1 << 6));
+	return 0;
 }
+
+// Branch if Negative
 uint8_t P6502::BMI()
 {
+    if (GetFlag(N) == 1){
+        branch();
+    }
     return 0;
 }
+
+// Branch if Not Equal
 uint8_t P6502::BNE()
 {
+    if (GetFlag(Z) == 0){
+        branch();
+    }
     return 0;
 }
+
+// Branch if Positive
 uint8_t P6502::BPL()
 {
+    if (GetFlag(N) == 0){
+        branch();
+    }
     return 0;
 }
+
+// Break
 uint8_t P6502::BRK()
 {
+    SetFlag(I, true);
+    pc++;
+    push((pc >> 8) & 0x00FF);
+    push((pc) & 0x00FF);
+
+    SetFlag(B, true);
+    push(flag_status);
+
+    SetFlag(I, false);
+
+
+    pc = (uint16_t)read(0xFFFE) | ((uint16_t)read(0xFFFF) << 8);
+    
     return 0;
 }
+
+// Branch if Overflow is Clear
 uint8_t P6502::BVC()
 {
+    if (GetFlag(V) == 0){
+        branch();
+    }
     return 0;
 }
+
+// Branch if Overflow is set
 uint8_t P6502::BVS()
 {
+    if (GetFlag(V) == 1){
+        branch();
+    }
     return 0;
 }
 
@@ -581,9 +653,15 @@ uint8_t P6502::DEY()
     SetFlag(Z, y & 0x80);
     return 0;
 }
+
+// XOR bitwise operation on the Accumulator and Operand
 uint8_t P6502::EOR()
 {
-    return 0;
+    fetch_operand();
+	acc = acc ^ operand;	
+	SetFlag(Z, acc == 0x00);
+	SetFlag(N, acc & 0x80);
+	return 1;
 }
 
 // Jump to target location
@@ -642,10 +720,15 @@ uint8_t P6502::NOP()
     return 0;
 }
 
-
+// Bitwise OR operation for Accumulator and operand
+// Flags: N, Z
 uint8_t P6502::ORA()
 {
-    return 0;
+    fetch_operand();
+	acc = acc | operand;
+	SetFlag(Z, acc == 0x00);
+	SetFlag(N, acc & 0x80);
+	return 1;
 }
 
 // Push the Accumulator to Stack
@@ -664,8 +747,7 @@ uint8_t P6502::PHP()
 }
 uint8_t P6502::PLA()
 {
-    stp ++;
-    acc = read(0x0100 + stp);
+    acc = pop();
 	SetFlag(Z, acc == 0x00);
 	SetFlag(N, acc & 0x80);
     return 0;
