@@ -370,11 +370,6 @@ uint8_t P6502::IZY()
 }
 
 
-
-
-
-
-
 ///////////////////////////////////////////////////
 // -----------------Instructions-----------------//
 ///////////////////////////////////////////////////
@@ -683,9 +678,16 @@ uint8_t P6502::JMP()
     pc= mem_addr;
     return 0;
 }
+
+// Jump to Subroutine, pushes return address on stack
+// so program can resume after subroutine is done.
 uint8_t P6502::JSR()
 {
-    return 0;
+    pc--;
+	push((pc >> 8) & 0x00FF);
+	push(pc & 0x00FF);
+	pc = mem_addr;
+	return 0;
 }
 
 // Loads Accumulator With Value From Memory
@@ -725,6 +727,16 @@ uint8_t P6502::LDY()
 
 uint8_t P6502::LSR()
 {
+    fetch_operand();
+    SetFlag(C, operand & 0x01);
+    uint8_t temp = operand >> 1;
+    SetFlag(Z, (temp & 0x00FF) == 0x0000);
+	SetFlag(N, temp & 0x0080);
+    if (instructions[opcode].address_mode == &P6502::IMP)
+		acc = temp & 0x00FF;
+	else
+		write(mem_addr, temp & 0x00FF);
+
     return 0;
 }
 
@@ -817,16 +829,29 @@ uint8_t P6502::ROR()
 	return 0;
 }
 
-
+// Return from Interrupt instruction
+// Pops the flags from the stack and also pops low and high byte of program
+// counter and sets pc as the address that is formed.
 uint8_t P6502::RTI()
 {
     uint8_t status = pop();
     flag_status = status;
+    SetFlag(U, false);
+    SetFlag(B, false);
+
+    uint8_t low = pop();
+    uint8_t high = pop();
+
+    pc = (high << 8) | low;
 
     return 0;
 }
 uint8_t P6502::RTS()
 {
+    uint8_t low = pop();
+    uint8_t high = pop();
+    pc = (high << 8) | low;
+    pc++;
     return 0;
 }
 uint8_t P6502::SBC()
