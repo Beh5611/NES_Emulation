@@ -94,7 +94,6 @@ uint8_t P6502::GetFlag(uint8_t flag)
     return (flag_status & flag) != 0;
 }
 
-
 void P6502::cycle()
 {
     while (cycles != 0){

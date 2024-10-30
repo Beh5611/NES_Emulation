@@ -81,7 +81,7 @@ void draw_pg(Bus* bus) {
     print_block(0x0000, 0x0040);
 
     // Print the second block (8000 - 8040)
-    print_block(0x8000, 0x8040);
+    print_block(0xC000, 0xC040);
 }
 
 
@@ -168,17 +168,101 @@ void run_interactive(Bus* bus, P6502* cpu) {
     }
 }
 
+void loadRam(Bus* bus, const std::string& filename) {
+    std::ifstream romFile(filename, std::ios::binary);
+    if (!romFile.is_open()) {
+        std::cerr << "Failed to open ROM file: " << filename << std::endl;
+        return;
+    }
+
+    // Skip the 16-byte iNES header
+    romFile.seekg(16, std::ios::beg);
+
+    // Read the rest of the file into a buffer
+    std::vector<char> buffer((std::istreambuf_iterator<char>(romFile)), std::istreambuf_iterator<char>());
+
+    // Load the buffer into RAM starting from 0x8000
+    size_t ramSize = buffer.size();
+    for (size_t i = 0; i < 0x4000; ++i) {
+        if (i + 0xC000 < 0xFFFF) { // Ensure we don't exceed the RAM bounds
+            bus->ram[i + 0xC000] = static_cast<uint8_t>(buffer[i]);
+            bus ->ram[i+0x8000] = static_cast <uint8_t> (buffer[i]);
+        }
+    }
+
+    romFile.close();
+}
+
+void printRomContents(const std::string& filename) {
+    std::ifstream romFile(filename, std::ios::binary);
+    if (!romFile.is_open()) {
+        std::cerr << "Failed to open ROM file: " << filename << std::endl;
+        return;
+    }
+
+    // Skip the 16-byte iNES header
+    romFile.seekg(16, std::ios::beg);
+
+    // Read the rest of the file into a buffer
+    std::vector<char> buffer((std::istreambuf_iterator<char>(romFile)), std::istreambuf_iterator<char>());
+
+    // Print the contents in hexadecimal format
+    for (size_t i = 0; i < buffer.size(); ++i) {
+        printf("%02X ", static_cast<unsigned char>(buffer[i]));
+
+        // Print a newline after every 16 bytes for readability
+        if ((i + 1) % 16 == 0) {
+            std::cout << std::endl;
+        }
+    }
+
+    romFile.close();
+}
+
+void log_state(const std::string& filename, P6502 * cpu) {
+        std::ofstream logFile;
+        logFile.open(filename, std::ios::app);  // Open in append mode
+
+        if (logFile.is_open()) {
+            // Format the log line
+            logFile << std::hex << cpu-> pc << "  ";  // PC
+            logFile << static_cast<int>(cpu->opcode) << " ";  // Opcode
+            logFile << cpu ->instructions[cpu->opcode].name << " ";  // Instruction
+            logFile << static_cast<int>(cpu->acc) << " ";  // A register
+            logFile << static_cast<int>(cpu->x) << " ";  // X register
+            logFile << static_cast<int>(cpu->y) << " ";  // Y register
+            logFile << "SP:" << static_cast<int>(cpu ->stp) << " ";  // Stack Pointer
+            logFile << "CYC:" << static_cast<int>(cpu-> cycles) << std::endl;  // Cycle count
+
+            logFile.close();
+        } else {
+            std::cerr << "Failed to open log file." << std::endl;
+        }
+    }
+
+
+
 int main() {
     Bus* bus = new Bus();
     P6502* cpu = bus->processor;
 
     // Load a small test program into memory
-    load_test_program(bus);
-    cpu->pc = 0x8000;  // Set PC to the start of the program
+    // load_test_program(bus);
 
-    // Run the interactive loop
-    display_cpu_memory(bus, cpu);
-    run_interactive(bus, cpu);
+    //load rom onto the ram
+    loadRam(bus,"nestest.nes");
+
+    cpu->pc = 0xC000;  // Set PC to the start of the program
+
+    // show the cpu memory and run it interactively
+    // display_cpu_memory(bus, cpu);
+    // run_interactive(bus, cpu);
+
+
+    while(cpu -> pc < 0xFFFF){
+        cpu-> cycle();
+        log_state("test.log", cpu);
+    }
 
     delete bus;  // Clean up
     return 0;
