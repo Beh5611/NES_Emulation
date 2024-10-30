@@ -32,7 +32,7 @@ uint8_t P6502::read(uint16_t addr)
 // Write into the Bus, which writes into the Memory
 void P6502::write(uint16_t addr, uint8_t data)
 {
-    bus->write(data, addr);
+    bus->write(addr, data);
 }
 
 // Store the some value in the stack page.
@@ -94,32 +94,31 @@ uint8_t P6502::GetFlag(uint8_t flag)
     return (flag_status & flag) != 0;
 }
 
-
 void P6502::cycle()
 {
-    if (cycles == 0){
-
-        opcode = read(pc);
-
-        SetFlag(U, true);
-        
-        pc++;
-        
-        INSTRUCTION instruction = instructions[opcode];
-
-        cycles = instruction.cycles;
-
-        uint8_t additional_cycle1 = (this->*instruction.address_mode)();
-        uint8_t additional_cycle2 = (this->*instruction.operation)();
-        
-
-        cycles += (additional_cycle1 & additional_cycle2);
-
-		
-		SetFlag(U, true);
+    while (cycles != 0){
+        cycles --;
     }
-    cycles--;
-}  
+    
+    opcode = read(pc);
+
+    SetFlag(U, true);
+    
+    pc++;
+    
+    INSTRUCTION instruction = instructions[opcode];
+
+    cycles = instruction.cycles;
+
+    uint8_t additional_cycle1 = (this->*instruction.address_mode)();
+    uint8_t additional_cycle2 = (this->*instruction.operation)();
+    
+
+    cycles += (additional_cycle1 & additional_cycle2);
+
+    
+    SetFlag(U, true);
+    }
 void P6502::interrupt()
 {
     if(GetFlag(I) == 0){
@@ -233,13 +232,13 @@ uint8_t P6502::ZPY()
 uint8_t P6502::REL()
 {
     // Fetch the offset
-    mem_addr = read(pc);
-	
-	if (mem_addr & 0x80)
-		mem_addr |= 0xFF00;
+    brch_addr = static_cast <int8_t>(read(pc));
+
+	// if (mem_addr & 0x80)
+		// mem_addr |= 0xFF00;
     
     pc++;
-
+    
 	return 0;
 }
 
@@ -370,11 +369,6 @@ uint8_t P6502::IZY()
 }
 
 
-
-
-
-
-
 ///////////////////////////////////////////////////
 // -----------------Instructions-----------------//
 ///////////////////////////////////////////////////
@@ -414,8 +408,21 @@ uint8_t P6502::INY()
 }
 
 uint8_t P6502::ADC()
-{
-    return 0;   
+{       
+    fetch_operand();
+    int carry_bit = GetFlag(C);
+    uint16_t temp = acc + operand + carry_bit;
+    SetFlag(Z, (temp & 0xFF) == 0x00);
+    SetFlag(N, temp & 0x80);
+    SetFlag(C, temp > 0xFF);
+
+    uint8_t overflow = (~(acc ^ operand) & (acc ^ temp) & 0x0080);
+    SetFlag(V, overflow);
+
+    acc = temp & 0x00FF;
+
+
+    return 1;   
 }
 
 // 'AND' Memory with Accumulator and Store it Back Into the Accumulator
@@ -649,8 +656,8 @@ uint8_t P6502::DEX()
 uint8_t P6502::DEY()
 {
     y--;
-    SetFlag(N, y == 0x00);
-    SetFlag(Z, y & 0x80);
+    SetFlag(Z, y == 0x00);
+    SetFlag(N, y & 0x80);
     return 0;
 }
 
@@ -670,9 +677,16 @@ uint8_t P6502::JMP()
     pc= mem_addr;
     return 0;
 }
+
+// Jump to Subroutine, pushes return address on stack
+// so program can resume after subroutine is done.
 uint8_t P6502::JSR()
 {
-    return 0;
+    pc--;
+	push((pc >> 8) & 0x00FF);
+	push(pc & 0x00FF);
+	pc = mem_addr;
+	return 0;
 }
 
 // Loads Accumulator With Value From Memory
@@ -692,7 +706,7 @@ uint8_t P6502::LDX()
 {
     fetch_operand();
     x = operand;
-    SetFlag(Z, x == 0x00);
+    SetFlag(Z, (x & 0xFF) == 0x00);
 	SetFlag(N, x & 0x80);
     
     return 0;
@@ -712,6 +726,16 @@ uint8_t P6502::LDY()
 
 uint8_t P6502::LSR()
 {
+    fetch_operand();
+    SetFlag(C, operand & 0x01);
+    uint8_t temp = operand >> 1;
+    SetFlag(Z, (temp & 0x00FF) == 0x0000);
+	SetFlag(N, temp & 0x0080);
+    if (instructions[opcode].address_mode == &P6502::IMP)
+		acc = temp & 0x00FF;
+	else
+		write(mem_addr, temp & 0x00FF);
+
     return 0;
 }
 
@@ -754,29 +778,98 @@ uint8_t P6502::PLA()
 }
 uint8_t P6502::PLP()
 {
+    uint8_t status = pop();
+
+    flag_status = status;
+
+    SetFlag(U, true);
+
     return 0;
 }
+
+// Roll Over Left
+
+// Shifts the operand to the left, keeps the previous carry_flag and sets it 
+// as the least significant byte of the new integer, sets new Carry_flag as the 
+// value that was shifted to the left.
 uint8_t P6502::ROL()
 {
-    return 0;
+    fetch_operand();
+    int carry_flag = GetFlag(C);
+    uint16_t temp = (((uint16_t)operand << 1)) | (carry_flag);
+    SetFlag(C, (operand & 0xFF00));
+    SetFlag(Z, (temp & 0x00FF) == 0x00); 
+    SetFlag(N, temp & 0x0080); 
+
+    if (instructions[opcode].address_mode == &P6502::IMP)
+		acc = temp & 0x00FF;
+	else
+		write(mem_addr, temp & 0x00FF);
+	return 0;
 }
+
+// Roll over Right
+
+// Functionally the same as ROL but instead of rotating left you rotate right
+// and old carry_bit is set as the most significant bit.
 uint8_t P6502::ROR()
 {
-    return 0;
+    fetch_operand();
+    int carry_flag = GetFlag(C);
+    SetFlag(C, (operand & 0x01) != 0);
+    uint16_t temp = (((uint16_t)operand >> 1)) | (carry_flag <<7);
+    SetFlag(Z, (temp & 0x00FF) == 0x00); 
+    SetFlag(N, temp & 0x0080); 
+
+    if (instructions[opcode].address_mode == &P6502::IMP)
+		acc = temp & 0x00FF;
+	else
+		write(mem_addr, temp & 0x00FF);
+	return 0;
 }
 
-
+// Return from Interrupt instruction
+// Pops the flags from the stack and also pops low and high byte of program
+// counter and sets pc as the address that is formed.
 uint8_t P6502::RTI()
 {
+    uint8_t status = pop();
+    flag_status = status;
+    SetFlag(U, false);
+    SetFlag(B, false);
+
+    uint8_t low = pop();
+    uint8_t high = pop();
+
+    pc = (high << 8) | low;
+
     return 0;
 }
 uint8_t P6502::RTS()
 {
+    uint8_t low = pop();
+    uint8_t high = pop();
+    pc = (high << 8) | low;
+    pc++;
     return 0;
 }
 uint8_t P6502::SBC()
 {
-    return 0;
+    fetch_operand();
+    uint16_t new_operand = ((uint16_t)operand) ^ 0x00FF;
+    int carry_bit = GetFlag(C);
+    uint16_t temp = acc + new_operand + carry_bit;
+    SetFlag(Z, (temp & 0x00FF) == 0x00);
+    SetFlag(N, temp & 0x0080);
+    SetFlag(C, temp > 0x00FF);
+
+    uint8_t overflow = (((uint16_t)acc ^ temp) & (new_operand ^ temp) & 0x0080);
+    SetFlag(V, overflow);
+
+    acc = temp & 0x00FF;
+
+
+    return 0;   
 }
 
 // Set the Carry Flag
