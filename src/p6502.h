@@ -24,7 +24,6 @@ class P6502
         static const uint8_t V = (1 << 6); // Overflow
         static const uint8_t N = (1 << 7); // Negative
 
-        
     
 
     // private:

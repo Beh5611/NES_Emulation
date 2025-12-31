@@ -1,22 +1,21 @@
-#ifndef Bus_H
-#define Bus_H
+#ifndef BUS_H
+#define BUS_H
 #include <cstdint>
+#include <iostream>
+#include <vector>
 #include "p6502.h"
-
-class P6502;
+#include "memory.h"
 
 class Bus
 {
-    public:
+    private:
+        RAM ram;
+        PPU ppu;
 
-        Bus(); // Constructor
+    public:        
 
-        P6502* processor; // CPU component
-
-        uint8_t ram[64 * 1024];
-
+        
         uint8_t read(uint16_t addr);
-
         void write(uint16_t addr, uint8_t data);
 
         
