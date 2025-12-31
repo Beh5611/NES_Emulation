@@ -1,5 +1,5 @@
 #include "Bus.h"
-
+#include "ppu.h"
 // improve the bus:read with bitwise & 
 // example 
 // 0x1001 & 0x07FF
@@ -8,6 +8,7 @@
 // 0000 0111 1111 1111   & 
 // =====================
 // 0000 0000 0000 0000
+
 
 uint8_t Bus::read(uint16_t addr)
 {

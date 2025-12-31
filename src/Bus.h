@@ -5,7 +5,7 @@
 #include <vector>
 #include "p6502.h"
 #include "memory.h"
-
+#include "ppu.h"
 class Bus
 {
     private:

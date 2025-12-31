@@ -17,17 +17,3 @@ void RAM::write(uint16_t addr, uint8_t data){
 }
 
 
-PPU::PPU(){
-    
-
-}
-uint8_t PPU::read(uint16_t addr){  
-    uint8_t data = vram[addr];
-    return data;
-
-}
-
-void PPU::write(uint16_t addr, uint8_t data){
-    vram[addr] = data;
-}
-
