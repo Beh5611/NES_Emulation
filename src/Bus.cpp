@@ -1,6 +1,7 @@
 #include "Bus.h"
 #include "ppu.h"
-// improve the bus:read with bitwise & 
+
+// improve the bus:read with bitwise & (x % n == x & (n-1))
 // example 
 // 0x1001 & 0x07FF
 
@@ -24,8 +25,8 @@ uint8_t Bus::read(uint16_t addr)
 }
 
 void Bus::write(uint16_t addr, uint8_t data)
-{
-    if( addr <= 0x2000){
+{   
+    if(addr <= 0x2000){
         ram.write(addr & 0x07FF, data);
     }
     return;
