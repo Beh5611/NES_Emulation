@@ -1,7 +1,11 @@
-#ifndef MEMORY_H
-#define MEMORY_H
+#ifndef CARTRIDGE_H
+#define CARTRIDGE_H
 #include <cstdint>
 #include <cstddef>
+
+#pragma once
+#include <string>
+
 
 
 struct NESHeader {
@@ -21,6 +25,10 @@ struct NESHeader {
     and the chr-rom occuppies 0x0000 - 0x1FFF of the ppu address
     space.
 
+    things to do:
+    1. read the ines file, fill the cartridge with the correct data required
+    2. take the cartridge create pointer and then read then fill the address space
+       of the cpu with the prg_rom and the address space of the ppu with chr_rom 
 
 
 
@@ -30,11 +38,13 @@ struct NESHeader {
 class Cartridge { 
 
     public:
+        Cartridge(const std::string& file_name);  
+        NESHeader nes_header;  
+        uint8_t trainer [512];
         uint8_t prg_rom[16 * 1024];
         uint8_t chr_rom[8 * 1024];        
 
-
-}
+};
 
 
 

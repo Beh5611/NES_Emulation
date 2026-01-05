@@ -1,6 +1,6 @@
 #include "Bus.h"
 #include "ppu.h"
-
+#include "cartridge.h"
 // improve the bus:read with bitwise & (x % n == x & (n-1))
 // example 
 // 0x0FFF & 0x07FF

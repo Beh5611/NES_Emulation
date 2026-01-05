@@ -4,12 +4,19 @@
 #include "Bus.h"
 #include <cstdarg>
 #include <raylib.h>
-
+#include "cartridge.h"
+#include "p6502.h"
 
 int main(){
 
     const int screenWidth = 800;
     const int screenHeight = 450;
+
+    Cartridge* cartridge = new Cartridge("./Donkey Kong (World) (Rev 1).nes");
+    Bus* bus = new Bus();
+
+    P6502 cpu = P6502(bus);
+
 
     InitWindow(screenWidth, screenHeight, "raylib [core] example - basic window");
 
