@@ -1,5 +1,4 @@
 #include "Bus.h"
-#include "ppu.h"
 #include "cartridge.h"
 // improve the bus:read with bitwise & (x % n == x & (n-1))
 // example 
@@ -22,6 +21,9 @@ uint8_t Bus::read(uint16_t addr)
     else if(0x2000 <= addr && addr <= 0x3FFF){
         
         return ppu.read(addr & 0x0007);
+    }
+    else if(0x8000 <= addr && addr <= 0xFFFF ){
+        return cartridge->cpu_read(addr);
     }
 
     return 0;

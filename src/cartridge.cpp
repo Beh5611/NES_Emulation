@@ -32,3 +32,39 @@ Cartridge::Cartridge(const std::string& file_name) {
 
     myFile.close();
 }
+
+uint8_t Cartridge::cpu_read(uint16_t addr) {
+    // PRG ROM is mapped at $8000–$FFFF
+    if (addr >= 0x8000 && addr <= 0xFFFF) {
+
+        // 16 KB PRG ROM → mirrored
+        if (nes_header.prgRomSize == 16 * 1024) {
+            return prg_rom[addr & 0x3FFF];
+        }
+
+        // 32 KB PRG ROM → direct mapping
+        else {
+            return prg_rom[addr & 0x7FFF];
+        }
+    }
+
+    // Cartridge does not respond
+    return 0x00;
+}
+uint8_t Cartridge::ppu_read(uint16_t addr) {
+    // CHR is visible at $0000–$1FFF
+    if (addr <= 0x1FFF) {
+
+        // CHR ROM present
+        if (nes_header.chrRomSize > 0) {
+            return chr_rom[addr];
+        }
+
+        // CHR RAM (no CHR ROM in cartridge)
+        // else {
+        //     return chr_ram[addr];
+        // }
+    }
+
+    return 0x00;
+}

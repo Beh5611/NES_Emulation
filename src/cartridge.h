@@ -34,7 +34,6 @@ struct NESHeader {
 
 */
 
-
 class Cartridge { 
 
     public:
@@ -43,7 +42,8 @@ class Cartridge {
         uint8_t trainer [512];
         uint8_t prg_rom[16 * 1024];
         uint8_t chr_rom[8 * 1024];        
-
+        uint8_t cpu_read(uint16_t addr);
+        uint8_t ppu_read(uint16_t addr);
 };
 
 

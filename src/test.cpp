@@ -5,6 +5,7 @@
 #include <cstdarg>
 #include <raylib.h>
 #include "cartridge.h"
+#include <cstring>
 #include "p6502.h"
 
 int main(){
@@ -16,8 +17,9 @@ int main(){
     Bus* bus = new Bus();
 
     P6502 cpu = P6502(bus);
-
-
+    // std::memcpy(cpu.bus->prg_rom,
+    //             cartridge->prg_rom,
+    //             sizeof(cartridge->prg_rom));
     InitWindow(screenWidth, screenHeight, "raylib [core] example - basic window");
 
     SetTargetFPS(60);               // Set our game to run at 60 frames-per-second

@@ -6,7 +6,6 @@
 #include "p6502.h"
 #include "memory.h"
 #include "ppu.h"
-
 class Cartridge;
 
 class Bus
@@ -14,6 +13,7 @@ class Bus
     private:
         RAM ram;
         PPU ppu;
+        Cartridge* cartridge;
 
     public:        
         uint8_t prg_rom[16* 1024];
