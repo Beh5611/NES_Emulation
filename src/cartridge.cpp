@@ -23,14 +23,17 @@ Cartridge::Cartridge(const std::string& file_name) {
     }
 
     // Read PRG ROM
-    myFile.read(reinterpret_cast<char*>(prg_rom), nes_header.prgRomSize);
+    myFile.read(reinterpret_cast<char*>(prg_rom), nes_header.prgRomSize * 16 * 1024);
 
     // Read CHR ROM if present
     if (nes_header.chrRomSize > 0) {
-        myFile.read(reinterpret_cast<char*>(chr_rom), nes_header.chrRomSize);
+        myFile.read(reinterpret_cast<char*>(chr_rom), nes_header.chrRomSize * 8 * 1024);
     }
 
     myFile.close();
+
+
+    
 }
 
 uint8_t Cartridge::cpu_read(uint16_t addr) {
@@ -38,14 +41,14 @@ uint8_t Cartridge::cpu_read(uint16_t addr) {
     if (addr >= 0x8000 && addr <= 0xFFFF) {
 
         // 16 KB PRG ROM → mirrored
-        if (nes_header.prgRomSize == 16 * 1024) {
+        // if (nes_header.prgRomSize == (16 * 1024)) {
             return prg_rom[addr & 0x3FFF];
-        }
+        // }
 
-        // 32 KB PRG ROM → direct mapping
-        else {
-            return prg_rom[addr & 0x7FFF];
-        }
+        // // 32 KB PRG ROM → direct mapping
+        // else {
+        //     return prg_rom[addr & 0x7FFF];
+        // }
     }
 
     // Cartridge does not respond

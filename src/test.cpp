@@ -6,17 +6,29 @@
 #include <raylib.h>
 #include "cartridge.h"
 #include <cstring>
+#include <string>
 #include "p6502.h"
+
 
 int main(){
 
     const int screenWidth = 800;
     const int screenHeight = 450;
-
-    Cartridge* cartridge = new Cartridge("./Donkey Kong (World) (Rev 1).nes");
+    
+    std::string nes_game = "nestest.nes"; // "./Donkey Kong (World) (Rev 1).nes"
+    Cartridge* cartridge = new Cartridge(nes_game);
     Bus* bus = new Bus();
+    bus->cartridge = cartridge;
 
     P6502 cpu = P6502(bus);
+    cpu.pc = 0xC000;
+
+    // running pc state 
+
+    while (1){
+        cpu.log_state();
+        cpu.cycle();
+    }
     // std::memcpy(cpu.bus->prg_rom,
     //             cartridge->prg_rom,
     //             sizeof(cartridge->prg_rom));

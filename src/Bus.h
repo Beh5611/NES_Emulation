@@ -10,12 +10,13 @@ class Cartridge;
 
 class Bus
 {
-    private:
+
+        
+
+    public:  
         RAM ram;
         PPU ppu;
-        Cartridge* cartridge;
-
-    public:        
+        Cartridge* cartridge;      
         uint8_t prg_rom[16* 1024];
         
         uint8_t read(uint16_t addr);

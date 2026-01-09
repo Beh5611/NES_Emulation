@@ -31,7 +31,8 @@ class P6502
         
         uint8_t opcode, cycles; // Helper variables for Instruction byte, the number of cycles remaining in an instruction.
 
-        uint16_t stp, pc; // stack pointer and program counter
+        uint8_t stp;
+        uint16_t pc; 
 
         uint8_t operand;
 
@@ -47,6 +48,7 @@ class P6502
         void fetch_operand();
         void branch();
 
+
         void SetFlag(uint8_t flag, bool b); // Sets flag or Makes sure the flag is not set depending on b
         uint8_t GetFlag(uint8_t flag); // Returns the bit (1 or 0) at a certain position depending on the flag value
         
@@ -56,7 +58,10 @@ class P6502
         void interrupt();
         void nm_interrupt();
         void reset();
+        
 
+        // logging function
+        void log_state();
 
 
         // Instructions

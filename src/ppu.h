@@ -87,7 +87,7 @@ class PPU: public IMemory{
         uint8_t oam_data;
         uint16_t ppu_scroll;
         uint16_t ppu_addr;
-        uint16_t ppu_data;
+        uint8_t ppu_data;
 
         uint8_t oam_dma;
         // mmio registers
@@ -98,8 +98,14 @@ class PPU: public IMemory{
         uint8_t x;
         uint8_t w;
 
+        uint16_t cycles;
+        
+        //
+
+
         // palette color 
-        const unsigned char PaletteLUT_2C04_0001 [64] ={
+        //PaletteLUT_2C04_0001
+        const unsigned char palette [64] ={
             0x35,0x23,0x16,0x22,0x1C,0x09,0x1D,0x15,0x20,0x00,0x27,0x05,0x04,0x28,0x08,0x20,
             0x21,0x3E,0x1F,0x29,0x3C,0x32,0x36,0x12,0x3F,0x2B,0x2E,0x1E,0x3D,0x2D,0x24,0x01,
             0x0E,0x31,0x33,0x2A,0x2C,0x0C,0x1B,0x14,0x2E,0x07,0x34,0x06,0x13,0x02,0x26,0x2E,
@@ -129,6 +135,7 @@ class PPU: public IMemory{
 
         uint8_t read(uint16_t addr) override;
         void write(uint16_t addr, uint8_t data) override;
+        void cycle();
         void generate_background();
 
 };

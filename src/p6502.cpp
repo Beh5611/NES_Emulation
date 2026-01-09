@@ -1,7 +1,8 @@
 #include "p6502.h"
 #include "Bus.h"
-
-
+#include <fstream>
+#include <iomanip>
+#include <sstream>
 // Constructor
 P6502::P6502(Bus* bus)
 {
@@ -19,8 +20,7 @@ P6502::P6502(Bus* bus)
     opcode = 0x00;
     operand = 0x00;
 
-    
-    
+
 }
 
 // Read from the memory using the bus.
@@ -974,5 +974,76 @@ uint8_t P6502::TYA()
 uint8_t P6502::XXX()
 {
     return 0;
+}
+
+
+static std::string hex8(uint8_t v) {
+    char buf[3];
+    snprintf(buf, sizeof(buf), "%02X", v);
+    return buf;
+}
+
+static std::string hex16(uint16_t v) {
+    char buf[5];
+    snprintf(buf, sizeof(buf), "%04X", v);
+    return buf;
+}
+
+
+void P6502::log_state()
+{
+    uint8_t opcode = read(pc);
+    uint8_t op1    = read(pc + 1);
+    uint8_t op2    = read(pc + 2);
+
+
+    const INSTRUCTION& inst = instructions[opcode];
+
+    std::string operand = "";
+
+    if (inst.address_mode == &P6502::IMM)
+        operand = "#$" + hex8(op1);
+    else if (inst.address_mode == &P6502::ZP0 ||
+             inst.address_mode == &P6502::ZPX ||
+             inst.address_mode == &P6502::ZPY)
+        operand = "$" + hex8(op1);
+    else if (inst.address_mode == &P6502::ABS ||
+             inst.address_mode == &P6502::ABX ||
+             inst.address_mode == &P6502::ABY ||
+             inst.address_mode == &P6502::IND)
+        operand = "$" + hex16((op2 << 8) | op1);
+    else if (inst.address_mode == &P6502::REL)
+        operand = "$" + hex8(op1);
+
+    std::string bytes;
+    bytes += hex8(opcode) + " ";
+
+    if (inst.address_mode == &P6502::IMP)
+        bytes += "      ";
+    else if (inst.address_mode == &P6502::IMM ||
+             inst.address_mode == &P6502::ZP0 ||
+             inst.address_mode == &P6502::REL)
+        bytes += hex8(op1) + "   ";
+    else
+        bytes += hex8(op1) + " " + hex8(op2);
+
+    std::ofstream file("output.txt", std::ios::app);
+
+    // Reset fill and alignment for each field to prevent leaks
+    file << std::hex << std::uppercase << std::setfill('0');
+
+    file << std::setw(4) << std::right << pc << "  ";
+    file << std::setw(8) << std::left << bytes;
+    file << std::setw(4) << std::left << inst.name << " ";
+    file << std::setw(28) << std::left << operand;
+
+    // Print registers with proper padding
+    file << "A:" << std::setw(2) << std::right << (int)acc << " ";
+    file << "X:" << std::setw(2) << std::right << (int)x << " ";
+    file << "Y:" << std::setw(2) << std::right << (int)y << " ";
+    file << "P:" << std::setw(2) << std::right << (int)flag_status << " ";
+    file << "SP:" << std::setw(2) << std::right << (int)(stp & 0xFF);
+
+    file << "\n";
 }
 

@@ -20,7 +20,7 @@ uint8_t Bus::read(uint16_t addr)
     }
     else if(0x2000 <= addr && addr <= 0x3FFF){
         
-        return ppu.read(addr & 0x0007);
+        return ppu.read(addr);
     }
     else if(0x8000 <= addr && addr <= 0xFFFF ){
         return cartridge->cpu_read(addr);
