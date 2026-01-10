@@ -1030,7 +1030,7 @@ void P6502::log_state()
     std::ofstream file("output.txt", std::ios::app);
 
     // Reset fill and alignment for each field to prevent leaks
-    file << std::hex << std::uppercase << std::setfill('0');
+    // file << std::hex << std::uppercase << std::setfill('0');
 
     file << std::setw(4) << std::right << pc << "  ";
     file << std::setw(8) << std::left << bytes;

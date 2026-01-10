@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <cstddef>
 #include "memory.h"
-
+#include <raylib.h>
 
 typedef union{
     struct {
@@ -73,13 +73,13 @@ typedef union{
 
 
 class PPU: public IMemory{
-    private: 
-        uint8_t vram[16 * 1024];
-        uint8_t spr_ram[256];
+       
 
     
     public:
         PPU();
+        uint8_t vram[16 * 1024];
+        uint8_t spr_ram[256];
         PPUCtrl ppu_ctrl;
         PPUMask ppu_mask;
         PPUStatus ppu_status;
@@ -100,8 +100,20 @@ class PPU: public IMemory{
 
         uint16_t cycles;
         
-        //
+        //others
+        uint8_t tile_index;
+        uint8_t attr_byte;
+        uint8_t pattern_low;
+        uint8_t pattern_high;
 
+
+        // shift registers
+        uint16_t bg_pattern_shift_low;
+        uint16_t bg_pattern_shift_high;
+        uint16_t bg_attr_shift_low;
+        uint16_t bg_attr_shift_high;
+
+        Color frame_buffer[256 * 240];
 
         // palette color 
         //PaletteLUT_2C04_0001

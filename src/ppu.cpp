@@ -23,6 +23,11 @@ PPU::PPU(){
     oam_dma = 0;
     cycles = 0;
 
+    tile_index = 0;
+    attr_byte = 0;
+    pattern_low = 0;
+    pattern_high = 0;
+
 }
 
 void PPU::cycle() {
@@ -32,10 +37,7 @@ void PPU::cycle() {
     // Calculate current scanline (0-261)
     int scanline = cycles / 341;
     int cycle_in_line = cycles % 341; // 0-340
-    uint8_t tile_index = 0;
-    uint8_t attr_byte = 0;
-    uint8_t pattern_low = 0;
-    uint8_t pattern_high = 0;
+   
 
 
     // -----------------------------
@@ -67,34 +69,53 @@ void PPU::cycle() {
             int tile_cycle = (cycle_in_line - 1) % 8;
 
             switch (tile_cycle) {
-                case 0: {
+                case 1: {
                     // Fetch Name Table byte
                     uint16_t name_table_addr = 0x2000 | (v & 0x0FFF);
-                    uint8_t tile_index = vram[name_table_addr];
+                    tile_index = vram[name_table_addr];
                     // Load into tile latch (shift registers would use this)
                     break;
                 }
-                case 1: {
+                case 3: {
                     // Fetch Attribute Table byte
                     uint16_t attr_addr = 0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07);
-                    uint8_t attr_byte = vram[attr_addr];
+                    attr_byte = vram[attr_addr];
                     // Prepare palette info
                     break;
                 }
-                case 2: {
+                case 5: {
                     // Fetch Pattern Table Low byte
                     uint16_t pattern_addr = (ppu_ctrl.B ? 0x1000 : 0x0000) + tile_index * 16 + ((v >> 12) & 0x7);
-                    uint8_t pattern_low = vram[pattern_addr];
+                    pattern_low = vram[pattern_addr];
                     break;
                 }
-                case 3: {
+                case 7: {
                     // Fetch Pattern Table High byte
                     uint16_t pattern_addr = (ppu_ctrl.B ? 0x1000 : 0x0000) + tile_index * 16 + ((v >> 12) & 0x7) + 8;
-                    uint8_t pattern_high = vram[pattern_addr];
+                    pattern_high = vram[pattern_addr];
                     break;
                 }
-                // 4-7 would be shifting / loading into registers
             }
+            // put the pixels into the shift_registers
+
+      if (tile_cycle == 7) {
+            // Load new tile pattern bytes into the lower 8 bits of the shift registers
+            bg_pattern_shift_low  &= 0xFF00;             // Clear lower 8 bits
+            bg_pattern_shift_low  |= (uint16_t)pattern_low;  // Load new low pattern byte
+
+            bg_pattern_shift_high &= 0xFF00;             
+            bg_pattern_shift_high |= (uint16_t)pattern_high; 
+
+            uint8_t pal_lo = (attr_byte & 1) ? 0xFF : 0x00;  
+            uint8_t pal_hi = (attr_byte & 2) ? 0xFF : 0x00;  
+
+            bg_attr_shift_low  &= 0xFF00;
+            bg_attr_shift_low  |= (uint16_t)pal_lo;
+
+            bg_attr_shift_high &= 0xFF00;
+            bg_attr_shift_high |= (uint16_t)pal_hi;
+        }
+
 
             // -----------------------------
             // Increment horizontal (coarse X) every 8 cycles
@@ -107,6 +128,7 @@ void PPU::cycle() {
                 } else {
                     v += 1;          // increment coarse X
                 }
+
             }
         }
 
@@ -240,7 +262,13 @@ void PPU::write(uint16_t addr, uint8_t data){
         }
         case 5:
         {
+            return;
 
+        }
+        case 7:{
+            vram[ppu_addr] = data;
+            ppu_addr += (ppu_ctrl.flags & (1 << 2)) ? 32 : 1;
+            ppu_addr &= 0x3FFF;
         }
 
     }
@@ -249,9 +277,42 @@ void PPU::write(uint16_t addr, uint8_t data){
 }
 
 
-void PPU::generate_background(){
+void PPU::generate_background() {
+    const int tile_width = 8;
+    const int tile_height = 8;
+
     
-    
-    
-    return;
 }
+
+
+// mental model of how all the ppu nametables, ppu pattern tables,
+// ppu attribute tables
+
+
+// ppu name tables 
+// 32x30 grid of indexes into the pattern table
+
+
+// pattern tables
+// contains the shape of each background tile and sprite
+// have to look at the 16 bytes, make them into 2 
+// separate planes and then use the low 8 bytes and high 8 bytes
+// to make 2 bit planes
+
+// example
+//    0-7: 18 38 18 18 18 18 7E 00
+//    8-F: 00 00 00 00 00 00 00 00
+
+// 18 : 0 0 0 1 1 0 0 0 
+// 38 : 0 0 1 1 1 0 0 0 
+// 18 : 0 0 0 1 1 0 0 0 
+// 18 : 0 0 0 1 1 0 0 0 
+// 18 : 0 0 0 1 1 0 0 0 
+// 18 : 0 0 0 1 1 0 0 0 
+// 7E : 0 1 1 1 1 1 1 0
+// 00 : 0 0 0 0 0 0 0 0
+
+
+// Note that the above using the indexes to the pattern table
+// generate the number 1. Similarly the other 8x8 byte table that is 
+// made is just in the same light but its all 0s as of now
